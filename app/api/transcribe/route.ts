@@ -4,6 +4,7 @@ import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import fs from "fs";
+import { compressAudio } from "../../lib/audio";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
   });
 
   let tempFilePath = "";
+  let compressedFilePath = "";
 
   try {
     const formData = await request.formData();
@@ -42,11 +44,27 @@ export async function POST(request: Request) {
     await writeFile(tempFilePath, buffer);
     console.log("File written to:", tempFilePath);
 
+    let transcriptionFilePath = tempFilePath;
+
+    // Check if file size is greater than 19MB
+    const stats = await fs.promises.stat(tempFilePath);
+    if (stats.size > 19 * 1024 * 1024) {
+      console.log("File is larger than 19MB, compressing...");
+      try {
+        compressedFilePath = await compressAudio(tempFilePath);
+        transcriptionFilePath = compressedFilePath;
+        console.log("Compression successful, using:", transcriptionFilePath);
+      } catch (compressionError) {
+        console.error("Compression failed, attempting with original file:", compressionError);
+        // Fallback to original file if compression fails
+      }
+    }
+
     // Call Groq Whisper
     console.log("Calling Groq Whisper...");
     // We use transcriptions to get the original text, then translate to Spanish.
     const transcriptionResponse = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(tempFilePath),
+      file: fs.createReadStream(transcriptionFilePath),
       model: "whisper-large-v3",
     });
 
@@ -74,6 +92,9 @@ export async function POST(request: Request) {
 
     // Clean up
     await unlink(tempFilePath);
+    if (compressedFilePath) {
+      await unlink(compressedFilePath);
+    }
 
     return NextResponse.json({ text: spanishText });
   } catch (error: unknown) {
@@ -83,6 +104,15 @@ export async function POST(request: Request) {
     if (tempFilePath) {
       try {
         await unlink(tempFilePath);
+      } catch {
+        // Ignore cleanup error
+      }
+    }
+
+    // Clean up compressed file if it exists
+    if (compressedFilePath) {
+      try {
+        await unlink(compressedFilePath);
       } catch {
         // Ignore cleanup error
       }
