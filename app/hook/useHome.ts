@@ -47,6 +47,18 @@ export default function useHome() {
         method: "POST",
         body: formData,
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Transcription API error:", res.status, errorText);
+        if (res.status === 413) {
+          alert("File is still too large after compression. Please try a shorter audio file.");
+        } else {
+          alert(`Transcription failed: ${res.statusText}`);
+        }
+        return;
+      }
+
       const data = await res.json();
       if (data.text) {
         setTranscription(data.text);

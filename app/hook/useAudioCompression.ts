@@ -40,8 +40,8 @@ export default function useAudioCompression() {
 
       await ffmpeg.writeFile(inputName, await fetchFile(file));
 
-      // Compress to mp3 64k
-      await ffmpeg.exec(["-i", inputName, "-b:a", "64k", outputName]);
+      // Compress to mp3 32k
+      await ffmpeg.exec(["-i", inputName, "-b:a", "32k", outputName]);
 
       const data = await ffmpeg.readFile(outputName);
       // Cast data to any to avoid type conflict with BlobPart
