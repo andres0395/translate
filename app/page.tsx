@@ -12,6 +12,7 @@ export default function Home() {
     feedback,
     handleAudioReady,
     reset,
+    isCompressing,
   } = useHome();
 
   return (
@@ -41,17 +42,23 @@ export default function Home() {
           )}
 
           {/* Loading State */}
-          {(isTranscribing || isGeneratingFeedback) && (
+          {(isTranscribing || isGeneratingFeedback || isCompressing) && (
             <div className="max-w-md mx-auto text-center py-20 animate-in fade-in duration-500">
               <div className="relative w-16 h-16 mx-auto mb-8">
                 <div className="absolute inset-0 border-4 border-zinc-100 dark:border-zinc-800 rounded-full"></div>
                 <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
               <h2 className="text-xl font-medium mb-2">
-                {isTranscribing ? "Transcribing Audio..." : "Analyzing Quality..."}
+                {isCompressing
+                  ? "Compressing Audio..."
+                  : isTranscribing
+                    ? "Transcribing Audio..."
+                    : "Analyzing Quality..."}
               </h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Processing your conversation with Groq AI models.
+                {isCompressing
+                  ? "Optimizing your file for upload..."
+                  : "Processing your conversation with Groq AI models."}
               </p>
             </div>
           )}
