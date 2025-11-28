@@ -28,7 +28,7 @@ export default function Home() {
             Call Quality Analysis
           </h1>
           <p className="text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto">
-            Upload German or Portuguese calls. Get instant English transcription and actionable quality insights.
+            Upload German or Portuguese calls. Get instant Spanish transcription and actionable quality insights.
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export default function Home() {
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
                     Transcription
                   </h2>
-                  <span className="text-xs font-mono text-zinc-400">English</span>
+                  <span className="text-xs font-mono text-zinc-400">Spanish</span>
                 </div>
                 <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800/50">
                   <p className="text-base leading-relaxed text-zinc-600 dark:text-zinc-300 whitespace-pre-line">

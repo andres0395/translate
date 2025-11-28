@@ -27,11 +27,11 @@ export async function POST(request: Request) {
 
     const systemPrompt = `
       You are an expert QA Analyst for a customer support call center.
-      Your task is to analyze the following customer call transcript (which has been translated to English).
+      Your task is to analyze the following customer call transcript (which is in Spanish).
       
-      Generate a detailed quality feedback report in JSON format with the following fields:
+      Generate a detailed quality feedback report in JSON format with the following fields (ALL VALUES MUST BE IN SPANISH):
       - summary: A brief summary of the call (max 2 sentences).
-      - sentiment: The overall sentiment of the customer (e.g., "Frustrated", "Satisfied", "Neutral").
+      - sentiment: The overall sentiment of the customer (e.g., "Frustrado", "Satisfecho", "Neutral").
       - keyPoints: An array of 3-5 bullet points highlighting the main topics discussed.
       - qualityScore: A number between 0 and 100 rating the interaction quality (from the perspective of a successful resolution/interaction).
       - recommendations: An array of 3 actionable recommendations for the agent or business.
@@ -62,18 +62,18 @@ export async function POST(request: Request) {
 
     console.warn("Falling back to mock feedback due to API error.");
     const mockFeedback = {
-      summary: "Customer reported a damaged product delivery (Fallback Mode).",
-      sentiment: "Frustrated but Polite",
+      summary: "El cliente reportó la entrega de un producto dañado (Modo de Respaldo).",
+      sentiment: "Frustrado pero Educado",
       keyPoints: [
-        "Product arrived damaged.",
-        "Customer is requesting a resolution.",
-        "API Quota/Error triggered fallback response."
+        "El producto llegó dañado.",
+        "El cliente solicita una resolución.",
+        "Error de cuota/API activó la respuesta de respaldo."
       ],
       qualityScore: 75,
       recommendations: [
-        "Check Groq API quota/billing.",
-        "Apologize to the customer for the damage.",
-        "Initiate replacement process immediately."
+        "Verificar cuota/facturación de API Groq.",
+        "Disculparse con el cliente por el daño.",
+        "Iniciar proceso de reemplazo inmediatamente."
       ]
     };
 

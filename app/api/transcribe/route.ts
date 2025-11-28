@@ -44,18 +44,38 @@ export async function POST(request: Request) {
 
     // Call Groq Whisper
     console.log("Calling Groq Whisper...");
-    // We use translations endpoint to ensure English output.
-    const translationResponse = await openai.audio.translations.create({
+    // We use transcriptions to get the original text, then translate to Spanish.
+    const transcriptionResponse = await openai.audio.transcriptions.create({
       file: fs.createReadStream(tempFilePath),
       model: "whisper-large-v3",
     });
+
+    const originalText = transcriptionResponse.text;
+    console.log("Original transcription received:", originalText.substring(0, 50) + "...");
+
+    // Translate to Spanish using Llama
+    const translationCompletion = await openai.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional translator. Translate the following text into Spanish. Return ONLY the translated text, nothing else."
+        },
+        {
+          role: "user",
+          content: originalText
+        }
+      ],
+    });
+
+    const spanishText = translationCompletion.choices[0].message.content;
 
     console.log("Transcription received");
 
     // Clean up
     await unlink(tempFilePath);
 
-    return NextResponse.json({ text: translationResponse.text });
+    return NextResponse.json({ text: spanishText });
   } catch (error: unknown) {
     console.error("Transcription error details:", error);
 
@@ -75,8 +95,10 @@ export async function POST(request: Request) {
     Original Audio Content (Simulated):
     "Guten Tag, ich rufe an, weil ich ein Problem mit meiner letzten Bestellung habe. Das Produkt ist beschädigt angekommen."
     
-    Translation:
-    "Good day, I am calling because I have a problem with my last order. The product arrived damaged."`;
+    "Good day, I am calling because I have a problem with my last order. The product arrived damaged."
+    
+    Translation (Spanish):
+    "Buenos días, llamo porque tengo un problema con mi último pedido. El producto llegó dañado."`;
 
     return NextResponse.json({ text: mockTranscription });
   }
