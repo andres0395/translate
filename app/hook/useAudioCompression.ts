@@ -5,10 +5,14 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 export default function useAudioCompression() {
   const [isCompressing, setIsCompressing] = useState(false);
-  const ffmpegRef = useRef(new FFmpeg());
+  const ffmpegRef = useRef<FFmpeg | null>(null);
 
   const load = async () => {
     const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+
+    if (!ffmpegRef.current) {
+      ffmpegRef.current = new FFmpeg();
+    }
     const ffmpeg = ffmpegRef.current;
 
     // Load ffmpeg.wasm from CDN
@@ -20,9 +24,13 @@ export default function useAudioCompression() {
 
   const compressAudio = async (file: File): Promise<Blob> => {
     setIsCompressing(true);
-    const ffmpeg = ffmpegRef.current;
 
     try {
+      if (!ffmpegRef.current) {
+        ffmpegRef.current = new FFmpeg();
+      }
+      const ffmpeg = ffmpegRef.current;
+
       if (!ffmpeg.loaded) {
         await load();
       }
