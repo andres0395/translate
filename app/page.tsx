@@ -129,7 +129,7 @@ export default function Home() {
                   </div>
 
                   {/* Recommendations */}
-                  <div className="p-6 bg-indigo-50/30 dark:bg-indigo-950/10">
+                  <div className="p-6 bg-indigo-50/30 dark:bg-indigo-950/10 border-b border-zinc-100 dark:border-zinc-800">
                     <h3 className="text-xs font-medium text-indigo-900/60 dark:text-indigo-200/60 mb-3">Recommendations</h3>
                     <ul className="space-y-2">
                       {feedback.recommendations.map((rec, i) => (
@@ -140,6 +140,38 @@ export default function Home() {
                       ))}
                     </ul>
                   </div>
+
+                  {/* Criteria Breakdown */}
+                  {feedback.criteriaBreakdown && (
+                    <div className="p-6 bg-white dark:bg-zinc-950">
+                      <h3 className="text-xs font-medium text-zinc-400 mb-3">Detailed Score Breakdown</h3>
+                      <div className="space-y-3">
+                        {feedback.criteriaBreakdown.map((item, i) => (
+                          <div key={i} className="flex items-start justify-between gap-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <div className={`mt-1 w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.met ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"}`}>
+                                {item.met ? (
+                                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className={`text-zinc-700 dark:text-zinc-300 ${!item.met && "text-zinc-500 dark:text-zinc-500"}`}>
+                                {item.criterion}
+                              </span>
+                            </div>
+                            <span className={`font-mono text-xs ${item.met ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400"}`}>
+                              {item.score}/{item.maxScore}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button
