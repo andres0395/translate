@@ -8,7 +8,6 @@ export default function Home() {
   const {
     transcription,
     isTranscribing,
-    isGeneratingFeedback,
     feedback,
     handleAudioReady,
     reset,
@@ -42,7 +41,8 @@ export default function Home() {
           )}
 
           {/* Loading State */}
-          {(isTranscribing || isGeneratingFeedback || isCompressing) && (
+          {/* Loading State */}
+          {(isTranscribing || isCompressing) && (
             <div className="max-w-md mx-auto text-center py-20 animate-in fade-in duration-500">
               <div className="relative w-16 h-16 mx-auto mb-8">
                 <div className="absolute inset-0 border-4 border-zinc-100 dark:border-zinc-800 rounded-full"></div>
@@ -51,9 +51,7 @@ export default function Home() {
               <h2 className="text-xl font-medium mb-2">
                 {isCompressing
                   ? "Compressing Audio..."
-                  : isTranscribing
-                    ? "Transcribing Audio..."
-                    : "Analyzing Quality..."}
+                  : "Analyzing Quality..."}
               </h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 {isCompressing
@@ -64,7 +62,7 @@ export default function Home() {
           )}
 
           {/* Results View */}
-          {transcription && feedback && !isGeneratingFeedback && (
+          {transcription && feedback && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
               {/* Transcription (Left/Top) */}

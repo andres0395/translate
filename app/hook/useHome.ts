@@ -6,7 +6,6 @@ import useAudioCompression from "./useAudioCompression";
 export default function useHome() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcription, setTranscription] = useState<string | null>(null);
-  const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const { compressAudio, isCompressing } = useAudioCompression();
 
@@ -43,51 +42,38 @@ export default function useHome() {
     formData.append("file", fileToUpload);
 
     try {
-      const res = await fetch("/api/transcribe", {
+      const res = await fetch("/api/feedback", {
         method: "POST",
         body: formData,
       });
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Transcription API error:", res.status, errorText);
+        console.error("Analysis API error:", res.status, errorText);
         if (res.status === 413) {
           alert("File is still too large after compression. Please try a shorter audio file.");
         } else {
-          alert(`Transcription failed: ${res.statusText}`);
+          alert(`Analysis failed: ${res.statusText}`);
         }
         return;
       }
 
       const data = await res.json();
-      if (data.text) {
-        setTranscription(data.text);
-        handleGenerateFeedback(data.text);
-      }
-    } catch (error) {
-      console.error("Transcription failed", error);
-      alert("Transcription failed. Please try again.");
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
 
-  const handleGenerateFeedback = async (text: string) => {
-    setIsGeneratingFeedback(true);
-    try {
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const data = await res.json();
+      // The API now returns { spanishTranslation, ...feedbackData }
+      if (data.spanishTranslation) {
+        setTranscription(data.spanishTranslation);
+      }
+
       if (data.summary) {
         setFeedback(data);
       }
+
     } catch (error) {
-      console.error("Feedback generation failed", error);
+      console.error("Analysis failed", error);
+      alert("Analysis failed. Please try again.");
     } finally {
-      setIsGeneratingFeedback(false);
+      setIsTranscribing(false);
     }
   };
 
@@ -99,7 +85,6 @@ export default function useHome() {
   return {
     transcription,
     isTranscribing,
-    isGeneratingFeedback,
     feedback,
     handleAudioReady,
     reset,
