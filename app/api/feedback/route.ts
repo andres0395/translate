@@ -12,7 +12,8 @@ export const runtime = "nodejs";
 // though here we mainly parse and return.
 
 export async function POST(request: Request) {
-  const apiKey = process.env.GROQ_API_KEY;
+  try{
+      const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
@@ -82,75 +83,43 @@ export async function POST(request: Request) {
       Transcript for Analysis:
       ${originalText}
 
+      Role: Act as a Senior Quality Assurance (QA) Analyst expert in subscription services for resumes and cover letters for the German and Portuguese markets.
+      Objective: Analyze a call transcript in Portuguese or German, translate it entirely into Spanish, and rate the agent's performance strictly based on the provided corporate policies.
+      1. Transcription and Context
+      Transcript for Analysis: [PASTE TRANSCRIPT HERE]
       Original Language: [Auto-detect or specify: Portuguese/German]
-
       Brand Identified: [Identify: Meu Currículo Perfeito, Zety, LiveCareer, or Mein Perfekter Lebenslauf]
-
       2. Evaluation Protocol (Checklist)
       Evaluate the following points by assigning COMPLIANT / NON-COMPLIANT / NOT APPLICABLE and provide a brief observation for each:
-
       Opening (10s): Cordial greeting, correct brand name (PT: Meu Currículo Perfeito, Zety, LiveCareer | DE: Mein Perfekter Lebenslauf, LiveCarrer, Zety), agent’s name, and "How can I help you?"
-
       Empathy: Active listening and a specific empathy phrase after the customer’s request.
-
       Account Validation: Must ask for Email. If not found: PayPal email or Credit Card (last 4 digits + cardholder name). If still not found: first 6 digits.
-
       Customer Education: (If applicable) Explain the 14-day trial period and the subsequent monthly subscription fee.
-
       Retention Probing: Ask questions to identify the profile (Student, unemployed, employed seeking new opportunities, newly hired in probation, or hired through us).
-
       Value Creation & Offers (Portugal): Adapt benefits to the profile. Offers allowed: MCP (13.99 BRL / 6.99 BRL) or LiveCareer (17 BRL / 11.45 BRL / 6 BRL).
-
       Value Creation & Offers (Germany): Adapt benefits. GOLDEN RULE: Maximum 1 offer per call. Two offers are strictly prohibited (Auto-Fail).
-
       Threat Management: If the customer mentions "Police, Lawyer, Bank/Rights, Justice, Social Media," the agent must stop retention and proceed with immediate cancellation and refund.
-
       Cancellation Process: Confirm cancellation, provide cancellation number, expiration date, and inform that resumes remain saved.
-
       Refund Policy (Abuse): Deny refund if the customer has 3+ refunds within 12 months.
-
       Refund Policy (Standard): Process the refund as allowed by the system.
-
       Refund Policy (Threats): Must process a full refund (or escalate to a supervisor if the system only allows partial). Inform 7–14 days processing time.
-
       Final Summary: Include cancellation info, refund details (if any), and the next billing date for accepted retention offers.
-
       Closing & Survey: "Any further questions?", promote the CSAT survey (scale 1-5), and say goodbye using the brand name.
-
       Proactive Retention (Prohibited): Agents cannot offer discounts if the customer did not ask for cancellation/refund (e.g., technical support calls).
-
       3. Fraud and Auto-Fail Section (Critical Failures)
       If any of the following is detected, the final score is 0%:
-
       False Save: Retention applied without consent, proactive refund to push an offer, or conditioning a refund on accepting an offer.
-
       Cancel Avoidance: Intentionally disconnecting, redirecting to another channel/website when the user wants to cancel now, or telling them to call back later.
-
       Behavior: Mistreating the customer or speaking ill of the company/brand.
-
       Security: Sharing screenshots of internal systems (Salesforce, Agent Portal, etc.).
-
       Germany Rule: Making more than one offer in the same call.
-
       4. Required Output Format
-      You MUST return a JSON object with the following structure:
-
-      {
-        "spanishTranslation": "(Full fluent translation of the conversation to Spanish)",
-        "summary": "...",
-        "sentiment": "...",
-        "keyPoints": ["..."],
-        "qualityScore": number (0-100),
-        "recommendations": ["..."],
-        "criteriaBreakdown": [
-          {
-            "criterion": "...",
-            "met": boolean,
-            "score": number,
-            "maxScore": number
-          }
-        ]
-      }
+      Present the results in this specific order:
+      Translation to Spanish: (Full fluent translation of the conversation).
+      Rating Table: (Table with Item | Status | Observation).
+      CRM Documentation (In English): The mandatory note the agent must leave in the system (Point 16).
+      Final Score: (Compliance percentage 0-100%).
+      Coaching/Feedback: (Key points for agent improvement).
 
       Return ONLY the JSON object.
     `;
@@ -173,7 +142,7 @@ export async function POST(request: Request) {
       throw new Error("No content received from Groq");
     }
 
-    const feedback = JSON.parse(content);
+    const feedback = normalizeFeedback(JSON.parse(content));
 
     // Clean up
     await unlink(tempFilePath);
@@ -221,6 +190,132 @@ export async function POST(request: Request) {
       ]
     };
 
-    return NextResponse.json(mockFeedback);
+    return NextResponse.json(normalizeFeedback(mockFeedback));
   }
+  }
+  catch(error){
+    console.error("Error in POST request:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+
+}
+
+function normalizeFeedback(payload: unknown) {
+  const obj = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+
+  const spanishTranslation =
+    getString(obj, "spanishTranslation") ??
+    getString(obj, "Translation to Spanish") ??
+    "";
+
+  const summary =
+    getString(obj, "summary") ??
+    getString(obj, "CRM Documentation") ??
+    getString(obj, "CRM Documentation (In English)") ??
+    "";
+
+  const sentiment = getString(obj, "sentiment") ?? "No especificado";
+
+  const qualityScore =
+    getNumber(obj, "qualityScore") ??
+    getNumber(obj, "Final Score") ??
+    0;
+
+  const criteriaBreakdown =
+    (Array.isArray(obj.criteriaBreakdown) ? normalizeCriteriaBreakdown(obj.criteriaBreakdown) : null) ??
+    (Array.isArray(obj["Rating Table"]) ? normalizeRatingTable(obj["Rating Table"]) : []);
+
+  const keyPoints =
+    (Array.isArray(obj.keyPoints) ? normalizeStringArray(obj.keyPoints) : null) ??
+    deriveKeyPointsFromCriteria(criteriaBreakdown);
+
+  const recommendations =
+    (Array.isArray(obj.recommendations) ? normalizeStringArray(obj.recommendations) : null) ??
+    deriveRecommendations(obj, criteriaBreakdown);
+
+  return {
+    spanishTranslation,
+    summary,
+    sentiment,
+    keyPoints,
+    qualityScore,
+    recommendations,
+    criteriaBreakdown,
+  };
+}
+
+function getString(obj: Record<string, unknown>, key: string) {
+  const value = obj[key];
+  return typeof value === "string" ? value : null;
+}
+
+function getNumber(obj: Record<string, unknown>, key: string) {
+  const value = obj[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeStringArray(value: unknown[]) {
+  const items = value.filter((v) => typeof v === "string").map((v) => String(v).trim()).filter(Boolean);
+  return items.length > 0 ? items : null;
+}
+
+function normalizeCriteriaBreakdown(value: unknown[]) {
+  const items = value
+    .map((item) => (item && typeof item === "object" ? (item as Record<string, unknown>) : null))
+    .filter((item): item is Record<string, unknown> => Boolean(item))
+    .map((item) => {
+      return {
+        criterion: typeof item.criterion === "string" ? item.criterion : "Criterio",
+        met: typeof item.met === "boolean" ? item.met : false,
+        score: typeof item.score === "number" ? item.score : 0,
+        maxScore: typeof item.maxScore === "number" ? item.maxScore : 1,
+      };
+    });
+  return items.length > 0 ? items : null;
+}
+
+function normalizeRatingTable(value: unknown[]) {
+  return value
+    .map((item) => (item && typeof item === "object" ? (item as Record<string, unknown>) : null))
+    .filter((item): item is Record<string, unknown> => Boolean(item))
+    .map((item) => {
+      const criterion = typeof item.Item === "string" ? item.Item : "Criterio";
+      const status = typeof item.Status === "string" ? item.Status : "";
+      const met = status.toUpperCase() === "COMPLIANT";
+      return {
+        criterion,
+        met,
+        score: met ? 1 : 0,
+        maxScore: 1,
+      };
+    });
+}
+
+function deriveKeyPointsFromCriteria(criteria: Array<{ criterion: string; met: boolean; score: number; maxScore: number }>) {
+  const nonCompliant = criteria.filter((c) => !c.met).map((c) => `No cumple: ${c.criterion}`);
+  if (nonCompliant.length > 0) return nonCompliant.slice(0, 6);
+  const compliant = criteria.filter((c) => c.met).map((c) => `Cumple: ${c.criterion}`);
+  return compliant.slice(0, 6);
+}
+
+function deriveRecommendations(obj: Record<string, unknown>, criteria: Array<{ criterion: string; met: boolean; score: number; maxScore: number }>) {
+  const coaching =
+    getString(obj, "Coaching/Feedback") ??
+    getString(obj, "Coaching") ??
+    getString(obj, "Feedback") ??
+    "";
+
+  const fromCoaching = coaching
+    .split(/[\n•\-–]|(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 8)
+    .slice(0, 6);
+
+  const fromCriteria = criteria
+    .filter((c) => !c.met)
+    .map((c) => `Mejorar: ${c.criterion}`)
+    .slice(0, 6);
+
+  const merged = [...fromCriteria, ...fromCoaching];
+  return merged.length > 0 ? merged.slice(0, 8) : ["Revisar la consistencia del output y ajustar el prompt para el formato esperado."];
 }
